@@ -46,6 +46,30 @@ const PATCHES = [
     replace: 'window.__owPlatform.isMobile&&document.body.addClass("is-mobile"),',
     expectedMatches: 1,
   },
+  {
+    // The "vault profile" panel at the bottom of the left sidebar — contains
+    // help icon, settings icon, and the current-vault dropdown. The mobile
+    // bundle gates its rendering on `Platform.isDesktopApp` (always false in
+    // a real mobile build). When we override `isMobile=false` to get desktop
+    // layout, the panel is still missing because we don't (and can't) flip
+    // `isDesktopApp` globally — that flag enables ~95 other code paths that
+    // use Electron-only APIs which would crash at boot.
+    //
+    // This patch flips THIS ONE check to `!isMobile`, so the panel appears
+    // whenever we're showing desktop layout, without touching the rest.
+    //
+    // Side effect: the vault-switcher dropdown click handler inside this
+    // block calls `electron.ipcRenderer.sendSync("vault")` etc., which will
+    // throw ReferenceError in mobile (we don't shim window.electron there).
+    // The settings (⚙) and help (?) icons in the same block work fine
+    // because they only call `app.setting.open()` / `app.openHelp()`.
+    // Vault switching via this dropdown is a known follow-up; for now,
+    // users can use `/starter` to switch vaults.
+    name: 'vault-profile-on-desktop-layout',
+    find:    /(\w+)\.isDesktopApp(\)\{var \w+=\w+\.vault\.getName\(\),\w+="")/,
+    replace: '!$1.isMobile$2',
+    expectedMatches: 1,
+  },
 ];
 
 async function applyPatches(appJsPath) {

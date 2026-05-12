@@ -256,6 +256,22 @@ const MOBILE_SCRIPTS = [
         });
         spinnerObs.observe(document.body, { childList: true, subtree: true });
       }
+
+      // ── Vault switcher click → /starter ──────────────────────────────────
+      // ה-mobile bundle מציג את ה-vault profile panel רק כש-Platform.isDesktopApp
+      // הוא true. ב-patch-obsidian-mobile.js שינינו את התנאי הזה ל-!isMobile כדי
+      // שהפאנל יופיע גם במצב desktop-layout. אבל ה-click handler המקורי בתוך
+      // הפאנל קורא ל-`electron.ipcRenderer.sendSync("vault" | "vault-list" |
+      // "vault-open")` — שלא קיים ב-mobile runtime (אין shim ל-window.electron
+      // ב-client-mobile/). תופסים את הקליק בשלב ה-capture, חוסמים את ה-handler
+      // המקורי, ומנווטים ל-/starter שיודע לעשות את אותו דבר ועוד.
+      document.addEventListener('click', function (e) {
+        var target = e.target && e.target.closest && e.target.closest('.workspace-drawer-vault-switcher');
+        if (!target) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        location.href = '/starter';
+      }, true);
     })
     .catch(function(err) {
       console.warn('[obsidian-web] vault check failed:', err.message);
